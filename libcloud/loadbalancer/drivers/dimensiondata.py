@@ -204,7 +204,7 @@ class DimensionDataLBDriver(Driver):
 
         :rtype: ``list`` of ``str``
         """
-        return ['http', 'https', 'tcp', 'udp']
+        return ['http', 'https', 'tcp', 'udp', 'ftp', 'smtp']
 
     def balancer_list_members(self, balancer):
         """
@@ -619,7 +619,6 @@ class DimensionDataLBDriver(Driver):
         """
         if port is 80 or 443:
             listener_type = 'PERFORMANCE_LAYER_4'
-            protocol = 'HTTP'
         else:
             listener_type = 'STANDARD'
 

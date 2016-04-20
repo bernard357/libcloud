@@ -71,7 +71,10 @@ DRIVERS = {
     ('libcloud.dns.drivers.nsone', 'NsOneDNSDriver'),
     Provider.LUADNS:
     ('libcloud.dns.drivers.luadns', 'LuadnsDNSDriver'),
-
+    Provider.BUDDYNS:
+    ('libcloud.dns.drivers.buddyns', 'BuddyNSDNSDriver'),
+    Provider.POWERDNS:
+    ('libcloud.dns.drivers.powerdns', 'PowerDNSDriver'),
 
     # Deprecated
     Provider.RACKSPACE_US:

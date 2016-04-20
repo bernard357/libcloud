@@ -369,7 +369,7 @@ class DimensionDataConnection(ConnectionUserAndKey):
     api_path_version_1 = '/oec'
     api_path_version_2 = '/caas'
     api_version_1 = '0.9'
-    api_version_2 = '2.1'
+    api_version_2 = '2.2'
 
     _orgId = None
     responseCls = DimensionDataResponse
@@ -470,6 +470,7 @@ class DimensionDataConnection(ConnectionUserAndKey):
                                                    data, headers,
                                                    method).object
         yield paged_resp
+        paged_resp = paged_resp or {}
 
         while paged_resp.get('pageCount') >= paged_resp.get('pageSize'):
             params['pageNumber'] = int(paged_resp.get('pageNumber')) + 1
@@ -554,6 +555,32 @@ class DimensionDataConnection(ConnectionUserAndKey):
             body = self.request_api_1('myaccount').object
             self._orgId = findtext(body, 'orgId', DIRECTORY_NS)
         return self._orgId
+
+    def get_account_details(self):
+        """
+        Get the details of this account
+
+        :rtype: :class:`DimensionDataAccountDetails`
+        """
+        body = self.request_api_1('myaccount').object
+        return DimensionDataAccountDetails(
+            user_name=findtext(body, 'userName', DIRECTORY_NS),
+            full_name=findtext(body, 'fullName', DIRECTORY_NS),
+            first_name=findtext(body, 'firstName', DIRECTORY_NS),
+            last_name=findtext(body, 'lastName', DIRECTORY_NS),
+            email=findtext(body, 'emailAddress', DIRECTORY_NS))
+
+
+class DimensionDataAccountDetails(object):
+    """
+    Dimension Data account class details
+    """
+    def __init__(self, user_name, full_name, first_name, last_name, email):
+        self.user_name = user_name
+        self.full_name = full_name
+        self.first_name = first_name
+        self.last_name = last_name
+        self.email = email
 
 
 class DimensionDataStatus(object):
@@ -780,12 +807,15 @@ class DimensionDataFirewallAddress(object):
     The source or destination model in a firewall rule
     """
     def __init__(self, any_ip, ip_address, ip_prefix_size,
-                 port_begin, port_end):
+                 port_begin, port_end, address_list_id,
+                 port_list_id):
         self.any_ip = any_ip
         self.ip_address = ip_address
         self.ip_prefix_size = ip_prefix_size
         self.port_begin = port_begin
         self.port_end = port_end
+        self.address_list_id = address_list_id
+        self.port_list_id = port_list_id
 
 
 class DimensionDataNatRule(object):

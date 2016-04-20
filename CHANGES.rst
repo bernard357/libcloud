@@ -7,13 +7,43 @@ Changes with latest version of Apache Libcloud
 General
 ~~~~~~~
 
+- Fix a regression with ``timeout`` argument provided via
+  ``_ex_connection_class_kwargs`` method being overriden with ``None`` inside
+  the ``BaseDriver`` constructor method.
+
+  Reported by Jay Rolette.
+  (GITHUB-755)
+  [Tomaz Muraus, Jay Rolette]
+
 Compute
 ~~~~~~~
 
-- Fix a race condition on GCE driver `list_nodes()`- Invoking GCE’s `list_nodes()` while some VMs are being shutdown can result
-  in the `following`libcloud.common.google.ResourceNotFoundError` exception to be raised.
+- Fix a race condition on GCE driver `list_nodes()`- Invoking GCE’s
+  `list_nodes()` while some VMs are being shutdown can result in the following
+  `libcloud.common.google.ResourceNotFoundError` exception to be raised.
   (GITHUB-727)
   [Lénaïc Huard]
+
+- Allow user to filter nodes by location by adding optional `location`
+  argument to the `list_nodes()` method in the CloudStack driver.
+  (GITHUB-737)
+  [Lionel Schaub]
+
+- Fix OpenStack IP type resolution - make sure IP addresses are correctly
+  categorized and assigned on `private_ips` and `public_ips` Node attribute.
+  (GITHUB-738)
+  [Lionel Schaub]
+
+- Add new `Perth, Australia` and `Manila, Philippines` region to the CloudSigma
+  v2 driver.
+  [Tomaz Muraus]
+
+DNS
+~~~
+
+- Added BuddyNS driver
+  (GITHUB-742)
+  [Oltjano Terpollari]
 
 
 Changes with Apache Libcloud in 1.0.0-rc2

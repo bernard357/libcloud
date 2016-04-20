@@ -4,6 +4,7 @@
 Provider            Documentation                             Provider Constant Supported Regions    Module                                   Class Name                    
 =================== ========================================= ================= ==================== ======================================== ==============================
 `AuroraDNS`_        :doc:`Click </dns/drivers/auroradns>`     AURORADNS         single region driver :mod:`libcloud.dns.drivers.auroradns`    :class:`AuroraDNSDriver`      
+`BuddyNS DNS`_      :doc:`Click </dns/drivers/buddyns>`       BUDDYNS           single region driver :mod:`libcloud.dns.drivers.buddyns`      :class:`BuddyNSDNSDriver`     
 `CloudFlare DNS`_   :doc:`Click </dns/drivers/cloudflare>`    CLOUDFLARE        single region driver :mod:`libcloud.dns.drivers.cloudflare`   :class:`CloudFlareDNSDriver`  
 `DigitalOcean`_     :doc:`Click </dns/drivers/digital_ocean>` DIGITAL_OCEAN     single region driver :mod:`libcloud.dns.drivers.digitalocean` :class:`DigitalOceanDNSDriver`
 `DNSimple`_         :doc:`Click </dns/drivers/dnsimple>`      DNSIMPLE          single region driver :mod:`libcloud.dns.drivers.dnsimple`     :class:`DNSimpleDNSDriver`    
@@ -18,6 +19,7 @@ Provider            Documentation                             Provider Constant 
 `NFSN DNS`_         :doc:`Click </dns/drivers/nfsn>`          NFSN              single region driver :mod:`libcloud.dns.drivers.nfsn`         :class:`NFSNDNSDriver`        
 `NS1 DNS`_                                                    NSONE             single region driver :mod:`libcloud.dns.drivers.nsone`        :class:`NsOneDNSDriver`       
 `Point DNS`_        :doc:`Click </dns/drivers/pointdns>`      POINTDNS          single region driver :mod:`libcloud.dns.drivers.pointdns`     :class:`PointDNSDriver`       
+`PowerDNS`_         :doc:`Click </dns/drivers/powerdns>`      POWERDNS          single region driver :mod:`libcloud.dns.drivers.powerdns`     :class:`PowerDNSDriver`       
 `Rackspace DNS`_                                              RACKSPACE         us, uk               :mod:`libcloud.dns.drivers.rackspace`    :class:`RackspaceDNSDriver`   
 `Route53 DNS`_                                                ROUTE53           single region driver :mod:`libcloud.dns.drivers.route53`      :class:`Route53DNSDriver`     
 `Softlayer DNS`_                                              SOFTLAYER         single region driver :mod:`libcloud.dns.drivers.softlayer`    :class:`SoftLayerDNSDriver`   
@@ -28,6 +30,7 @@ Provider            Documentation                             Provider Constant 
 =================== ========================================= ================= ==================== ======================================== ==============================
 
 .. _`AuroraDNS`: https://www.pcextreme.nl/en/aurora/dns
+.. _`BuddyNS DNS`: https://www.buddyns.com
 .. _`CloudFlare DNS`: https://www.cloudflare.com
 .. _`DigitalOcean`: https://www.digitalocean.com
 .. _`DNSimple`: https://dnsimple.com/
@@ -42,6 +45,7 @@ Provider            Documentation                             Provider Constant 
 .. _`NFSN DNS`: https://www.nearlyfreespeech.net
 .. _`NS1 DNS`: https://ns1.com
 .. _`Point DNS`: https://pointhq.com/
+.. _`PowerDNS`: https://www.powerdns.com/
 .. _`Rackspace DNS`: http://www.rackspace.com/
 .. _`Route53 DNS`: http://aws.amazon.com/route53/
 .. _`Softlayer DNS`: https://www.softlayer.com

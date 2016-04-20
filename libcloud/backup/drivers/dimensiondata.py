@@ -34,6 +34,8 @@ from libcloud.common.dimensiondata import TYPES_URN
 from libcloud.common.dimensiondata import GENERAL_NS, BACKUP_NS
 from libcloud.utils.xml import fixxpath, findtext, findall
 
+# pylint: disable=no-member
+
 DEFAULT_BACKUP_PLAN = 'Advanced'
 
 
@@ -604,7 +606,7 @@ class DimensionDataBackupDriver(BackupDriver):
 
     def _to_backup_details(self, object, target):
         return DimensionDataBackupDetails(
-            asset_id=object.get('asset_id'),
+            asset_id=object.get('assetId'),
             service_plan=object.get('servicePlan'),
             status=object.get('state'),
             clients=self._to_clients(object, target)
