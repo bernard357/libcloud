@@ -15,9 +15,10 @@
 """
 Tests for Google Compute Engine Driver
 """
+import datetime
+import mock
 import sys
 import unittest
-import datetime
 
 from libcloud.utils.py3 import httplib
 from libcloud.compute.drivers.gce import (GCENodeDriver, API_VERSION,
@@ -449,11 +450,47 @@ class GCENodeDriverTest(GoogleTestCase, TestCaseMixin):
 
     def test_ex_create_image(self):
         volume = self.driver.ex_get_volume('lcdisk')
-        image = self.driver.ex_create_image('coreos', volume)
+        description = 'CoreOS beta 522.3.0'
+        name = 'coreos'
+        family = 'coreos'
+        guest_os_features = ['VIRTIO_SCSI_MULTIQUEUE']
+        expected_features = [{'type': 'VIRTIO_SCSI_MULTIQUEUE'}]
+        mock_request = mock.Mock()
+        mock_request.side_effect = self.driver.connection.async_request
+        self.driver.connection.async_request = mock_request
+
+        image = self.driver.ex_create_image(
+            name, volume, description=description, family='coreos',
+            guest_os_features=guest_os_features)
         self.assertTrue(isinstance(image, GCENodeImage))
-        self.assertTrue(image.name.startswith('coreos'))
-        self.assertEqual(image.extra['description'], 'CoreOS beta 522.3.0')
-        self.assertEqual(image.extra['family'], 'coreos')
+        self.assertTrue(image.name.startswith(name))
+        self.assertEqual(image.extra['description'], description)
+        self.assertEqual(image.extra['family'], family)
+        self.assertEqual(image.extra['guestOsFeatures'], expected_features)
+        expected_data = {'description': description,
+                         'family': family,
+                         'guestOsFeatures': expected_features,
+                         'name': name,
+                         'sourceDisk': volume.extra['selfLink'],
+                         'zone': volume.extra['zone'].name}
+        mock_request.assert_called_once_with('/global/images',
+                                             data=expected_data,
+                                             method='POST')
+
+    def test_ex_copy_image(self):
+        name = 'coreos'
+        url = 'gs://storage.core-os.net/coreos/amd64-generic/247.0.0/coreos_production_gce.tar.gz'
+        description = 'CoreOS beta 522.3.0'
+        family = 'coreos'
+        guest_os_features = ['VIRTIO_SCSI_MULTIQUEUE']
+        expected_features = [{'type': 'VIRTIO_SCSI_MULTIQUEUE'}]
+        image = self.driver.ex_copy_image(name, url, description=description,
+                                          family=family,
+                                          guest_os_features=guest_os_features)
+        self.assertTrue(image.name.startswith(name))
+        self.assertEqual(image.extra['description'], description)
+        self.assertEqual(image.extra['family'], family)
+        self.assertEqual(image.extra['guestOsFeatures'], expected_features)
 
     def test_ex_create_firewall(self):
         firewall_name = 'lcfirewall'
@@ -654,6 +691,46 @@ class GCENodeDriverTest(GoogleTestCase, TestCaseMixin):
         self.assertRaises(ValueError, self.driver.create_node, node_name,
                           size, image, location=zone, ex_network=network,
                           ex_nic_gce_struct=ex_nic_gce_struct)
+
+    def test_create_node_subnetwork_opts(self):
+        node_name = 'sn-node-name'
+        size = self.driver.ex_get_size('n1-standard-1')
+        image = self.driver.ex_get_image('debian-7')
+        zone = self.driver.ex_get_zone('us-central1-a')
+        network = self.driver.ex_get_network('custom-network')
+        subnetwork = self.driver.ex_get_subnetwork('cf-972cf02e6ad49112')
+
+        ex_nic_gce_struct = [
+            {
+                "network": "global/networks/custom-network",
+                "subnetwork": "projects/project_name/regions/us-central1/subnetworks/cf-972cf02e6ad49112",
+                "accessConfigs": [
+                    {
+                        "name": "External NAT",
+                        "type": "ONE_TO_ONE_NAT"
+                    }
+                ]
+            }
+        ]
+        # Test using just the network and subnetwork
+        node = self.driver.create_node(node_name, size, image, location=zone,
+                                       ex_network=network,
+                                       ex_subnetwork=subnetwork)
+        self.assertEqual(node.extra['networkInterfaces'][0]["name"], 'nic0')
+        self.assertEqual(node.extra['networkInterfaces'][0]["subnetwork"].split('/')[-1], 'cf-972cf02e6ad49112')
+
+        # Test using just the struct
+        node = self.driver.create_node(node_name, size, image, location=zone,
+                                       ex_nic_gce_struct=ex_nic_gce_struct)
+        self.assertEqual(node.extra['networkInterfaces'][0]["name"], 'nic0')
+        self.assertEqual(node.extra['networkInterfaces'][0]["subnetwork"].split('/')[-1], 'cf-972cf02e6ad49112')
+
+        # Test using subnetwork selfLink
+        node = self.driver.create_node(node_name, size, image, location=zone,
+                                       ex_network=network,
+                                       ex_subnetwork=subnetwork.extra['selfLink'])
+        self.assertEqual(node.extra['networkInterfaces'][0]["name"], 'nic0')
+        self.assertEqual(node.extra['networkInterfaces'][0]["subnetwork"].split('/')[-1], 'cf-972cf02e6ad49112')
 
     def test_create_node_disk_opts(self):
         node_name = 'node-name'
@@ -1305,17 +1382,6 @@ class GCENodeDriverTest(GoogleTestCase, TestCaseMixin):
 
         self.assertRaises(ResourceNotFoundError, self.driver.ex_get_image_from_family, 'nofamily')
 
-    def test_ex_copy_image(self):
-        name = 'coreos'
-        url = 'gs://storage.core-os.net/coreos/amd64-generic/247.0.0/coreos_production_gce.tar.gz'
-        description = 'CoreOS beta 522.3.0'
-        family = 'coreos'
-        image = self.driver.ex_copy_image(name, url, description=description,
-                                          family=family)
-        self.assertTrue(image.name.startswith(name))
-        self.assertEqual(image.extra['description'], description)
-        self.assertEqual(image.extra['family'], family)
-
     def test_ex_get_route(self):
         route_name = 'lcdemoroute'
         route = self.driver.ex_get_route(route_name)
@@ -1808,6 +1874,10 @@ class GCEMockHttp(MockHttpTestCase):
             body = self.fixtures.load('global_networks_post.json')
         else:
             body = self.fixtures.load('global_networks.json')
+        return (httplib.OK, body, self.json_hdr, httplib.responses[httplib.OK])
+
+    def _global_networks_custom_network(self, method, url, body, headers):
+        body = self.fixtures.load('global_networks_custom_network.json')
         return (httplib.OK, body, self.json_hdr, httplib.responses[httplib.OK])
 
     def _global_networks_cf(self, method, url, body, headers):
@@ -2630,6 +2700,11 @@ class GCEMockHttp(MockHttpTestCase):
                 'zones_us-central1-a_instances_post.json')
         else:
             body = self.fixtures.load('zones_us-central1-a_instances.json')
+        return (httplib.OK, body, self.json_hdr, httplib.responses[httplib.OK])
+
+    def _zones_us_central1_a_instances_sn_node_name(self, method, url, body,
+                                                    headers):
+        body = self.fixtures.load('zones_us-central1-a_instances_sn-node-name.json')
         return (httplib.OK, body, self.json_hdr, httplib.responses[httplib.OK])
 
     def _zones_us_central1_a_instances_node_name(self, method, url, body,

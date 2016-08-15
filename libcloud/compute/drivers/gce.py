@@ -500,7 +500,7 @@ class GCENodeImage(NodeImage):
         :type   replacement: ``str`` or :class: `GCENodeImage`
 
         :param  state: Deprecation state of this image. Possible values include
-                       \'DELETED\', \'DEPRECATED\' or \'OBSOLETE\'.
+                       \'ACTIVE\', \'DELETED\', \'DEPRECATED\' or \'OBSOLETE\'.
         :type   state: ``str``
 
         :param  deprecated: RFC3339 timestamp to mark DEPRECATED
@@ -1034,6 +1034,9 @@ class GCENodeDriver(NodeDriver):
         "datastore": "datastore",
         "logging-write": "logging.write",
         "monitoring": "monitoring",
+        "monitoring-write": "monitoring.write",
+        "service-control": "servicecontrol",
+        "service-management": "service.management",
         "sql": "sqlservice",
         "sql-admin": "sqlservice.admin",
         "storage-full": "devstorage.full_control",
@@ -1057,6 +1060,8 @@ class GCENodeDriver(NodeDriver):
         "ubuntu-os-cloud": ["ubuntu"],
         "windows-cloud": ["windows"],
     }
+
+    GUEST_OS_FEATURES = ['VIRTIO_SCSI_MULTIQUEUE']
 
     def __init__(self, user_id, key=None, datacenter=None, project=None,
                  auth_type=None, scopes=None, credential_file=None, **kwargs):
@@ -1628,7 +1633,7 @@ class GCENodeDriver(NodeDriver):
         :type     region: ``str`` or :class:`GCERegion`
 
         :return: A list of subnetwork objects.
-        :rtype: ``list`` of :class:`GCESubNetwork`
+        :rtype: ``list`` of :class:`GCESubnetwork`
         """
         region = self._set_region(region)
         if region is None:
@@ -2189,7 +2194,8 @@ class GCENodeDriver(NodeDriver):
         return self.ex_get_forwarding_rule(name, global_rule=global_rule)
 
     def ex_create_image(self, name, volume, description=None, family=None,
-                        use_existing=True, wait_for_completion=True):
+                        guest_os_features=None, use_existing=True,
+                        wait_for_completion=True):
         """
         Create an image from the provided volume.
 
@@ -2200,15 +2206,21 @@ class GCENodeDriver(NodeDriver):
                         Google Cloud Storage URI
         :type   volume: ``str`` or :class:`StorageVolume`
 
-        :keyword    description: Description of the new Image
-        :type       description: ``str``
+        :keyword  description: Description of the new Image
+        :type     description: ``str``
 
-        :keyword    family: The name of the image family to which this image
-                            belongs. If you create resources by specifying an
-                            image family instead of a specific image name, the
-                            resource uses the latest non-deprecated image that
-                            is set with that family name.
-        :type       family: ``str``
+        :keyword  family: The name of the image family to which this image
+                          belongs. If you create resources by specifying an
+                          image family instead of a specific image name, the
+                          resource uses the latest non-deprecated image that
+                          is set with that family name.
+        :type     family: ``str``
+
+        :keywork  guest_os_features: Features of the guest operating system,
+                                     valid for bootable images only. Possible
+                                     values include \'VIRTIO_SCSI_MULTIQUEUE\'
+                                     if specified.
+        :type     guest_os_features: ``list`` of ``str`` or ``None``
 
         :keyword  use_existing: If True and an image with the given name
                                 already exists, return an object for that
@@ -2223,8 +2235,8 @@ class GCENodeDriver(NodeDriver):
                                        creation progress
         :type     wait_for_completion: ``bool``
 
-        :return:    A GCENodeImage object for the new image
-        :rtype:     :class:`GCENodeImage`
+        :return:  A GCENodeImage object for the new image
+        :rtype:   :class:`GCENodeImage`
 
         """
         image_data = {}
@@ -2240,7 +2252,14 @@ class GCENodeDriver(NodeDriver):
             image_data['rawDisk'] = {'source': volume, 'containerType': 'TAR'}
         else:
             raise ValueError('Source must be instance of StorageVolume or URI')
-
+        if guest_os_features:
+            image_data['guestOsFeatures'] = []
+            for feature in guest_os_features:
+                if feature in self.GUEST_OS_FEATURES:
+                    image_data['guestOsFeatures'].append({'type': feature})
+                else:
+                    raise ValueError('Features must be one of %s'
+                                     % ','.join(self.GUEST_OS_FEATURES))
         request = '/global/images'
 
         try:
@@ -2256,6 +2275,59 @@ class GCENodeDriver(NodeDriver):
             if not use_existing:
                 raise e
 
+        return self.ex_get_image(name)
+
+    def ex_copy_image(self, name, url, description=None, family=None,
+                      guest_os_features=None):
+        """
+        Copy an image to your image collection.
+
+        :param  name: The name of the image
+        :type   name: ``str``
+
+        :param  url: The URL to the image. The URL can start with `gs://`
+        :param  url: ``str``
+
+        :param  description: The description of the image
+        :type   description: ``str``
+
+        :param  family: The family of the image
+        :type   family: ``str``
+
+        :param  guest_os_features: The features of the guest operating system.
+        :type   guest_os_features: ``list`` of ``str`` or ``None``
+
+        :return:  NodeImage object based on provided information or None if an
+                  image with that name is not found.
+        :rtype:   :class:`NodeImage` or ``None``
+        """
+
+        # The URL for an image can start with gs://
+        if url.startswith('gs://'):
+            url = url.replace('gs://', 'https://storage.googleapis.com/', 1)
+
+        image_data = {
+            'name': name,
+            'description': description,
+            'family': family,
+            'sourceType': 'RAW',
+            'rawDisk': {
+                'source': url,
+            },
+        }
+
+        if guest_os_features:
+            image_data['guestOsFeatures'] = []
+            for feature in guest_os_features:
+                if feature in self.GUEST_OS_FEATURES:
+                    image_data['guestOsFeatures'].append({'type': feature})
+                else:
+                    raise ValueError('Features must be one of %s'
+                                     % ','.join(self.GUEST_OS_FEATURES))
+
+        request = '/global/images'
+        self.connection.async_request(request, method='POST',
+                                      data=image_data)
         return self.ex_get_image(name)
 
     def ex_create_route(self, name, dest_range, priority=500,
@@ -2433,7 +2505,8 @@ class GCENodeDriver(NodeDriver):
         return self.ex_get_network(name)
 
     def create_node(self, name, size, image, location=None,
-                    ex_network='default', ex_tags=None, ex_metadata=None,
+                    ex_network='default', ex_subnetwork=None,
+                    ex_tags=None, ex_metadata=None,
                     ex_boot_disk=None, use_existing_disk=True,
                     external_ip='ephemeral', ex_disk_type='pd-standard',
                     ex_disk_auto_delete=True, ex_service_accounts=None,
@@ -2460,6 +2533,9 @@ class GCENodeDriver(NodeDriver):
 
         :keyword  ex_network: The network to associate with the node.
         :type     ex_network: ``str`` or :class:`GCENetwork`
+
+        :keyword  ex_subnetwork: The subnetwork to associate with the node.
+        :type     ex_subnetwork: ``str`` or :class:`GCESubnetwork`
 
         :keyword  ex_tags: A list of tags to associate with the node.
         :type     ex_tags: ``list`` of ``str`` or ``None``
@@ -2583,6 +2659,12 @@ class GCENodeDriver(NodeDriver):
             size = self.ex_get_size(size, location)
         if not hasattr(ex_network, 'name'):
             ex_network = self.ex_get_network(ex_network)
+        if ex_subnetwork:
+            if not hasattr(ex_subnetwork, 'name'):
+                ex_subnetwork = \
+                    self.ex_get_subnetwork(ex_subnetwork,
+                                           region=self._get_region_from_zone(
+                                               location))
         if ex_image_family:
             image = self.ex_get_image_from_family(ex_image_family)
         if image and not hasattr(image, 'name'):
@@ -2620,7 +2702,8 @@ class GCENodeDriver(NodeDriver):
                                                    ex_nic_gce_struct,
                                                    ex_on_host_maintenance,
                                                    ex_automatic_restart,
-                                                   ex_preemptible)
+                                                   ex_preemptible,
+                                                   ex_subnetwork)
         self.connection.async_request(request, method='POST', data=node_data)
         return self.ex_get_node(name, location.name)
 
@@ -3790,7 +3873,7 @@ class GCENodeDriver(NodeDriver):
         if state is None:
             state = 'DEPRECATED'
 
-        possible_states = ['DELETED', 'DEPRECATED', 'OBSOLETE']
+        possible_states = ['ACTIVE', 'DELETED', 'DEPRECATED', 'OBSOLETE']
 
         if state not in possible_states:
             raise ValueError('state must be one of %s'
@@ -4334,13 +4417,13 @@ class GCENodeDriver(NodeDriver):
         """
         Return an GCENodeImage object based on an image family name.
 
-        :param  image_family: The name of the Image Family to return the
+        :param  image_family: The name of the 'Image Family' to return the
                               latest image from.
         :type   image_family: ``str``
 
         :param  ex_project_list: The name of the project to list for images.
                                  Examples include: 'debian-cloud'.
-        :type   ex_project_List: ``str``, ``list`` of ``str``, or ``None``
+        :type   ex_project_list: ``list`` of ``str``, or ``None``
 
         :param  ex_standard_projects: If true, check in standard projects if
                                       the image is not found.
@@ -4709,46 +4792,6 @@ class GCENodeDriver(NodeDriver):
             return None
         return self._to_zone(response)
 
-    def ex_copy_image(self, name, url, description=None, family=None):
-        """
-        Copy an image to your image collection.
-
-        :param  name: The name of the image
-        :type   name: ``str``
-
-        :param  url: The URL to the image. The URL can start with `gs://`
-        :param  url: ``str``
-
-        :param  description: The description of the image
-        :type   description: ``str``
-
-        :param  family: The family of the image
-        :type   family: ``str``
-
-        :return:  NodeImage object based on provided information or None if an
-                  image with that name is not found.
-        :rtype:   :class:`NodeImage` or ``None``
-        """
-
-        # the URL for an image can start with gs://
-        if url.startswith('gs://'):
-            url = url.replace('gs://', 'https://storage.googleapis.com/', 1)
-
-        image_data = {
-            'name': name,
-            'description': description,
-            'family': family,
-            'sourceType': 'RAW',
-            'rawDisk': {
-                'source': url,
-            },
-        }
-
-        request = '/global/images'
-        self.connection.async_request(request, method='POST',
-                                      data=image_data)
-        return self.ex_get_image(name)
-
     def _ex_connection_class_kwargs(self):
         return {'auth_type': self.auth_type,
                 'project': self.project,
@@ -4956,7 +4999,7 @@ class GCENodeDriver(NodeDriver):
                          ex_disks_gce_struct=None, ex_nic_gce_struct=None,
                          ex_on_host_maintenance=None,
                          ex_automatic_restart=None,
-                         ex_preemptible=None):
+                         ex_preemptible=None, ex_subnetwork=None):
         """
         Returns a request and body to create a new node.  This is a helper
         method to support both :class:`create_node` and
@@ -5067,6 +5110,9 @@ class GCENodeDriver(NodeDriver):
                                          not be preemptible)
         :type     ex_preemptible: ``bool`` or ``None``
 
+        :param  ex_subnetwork: The network to associate with the node.
+        :type   ex_subnetwork: :class:`GCESubnetwork`
+
         :return:  A tuple containing a request string and a node_data dict.
         :rtype:   ``tuple`` of ``str`` and ``dict``
         """
@@ -5171,9 +5217,12 @@ class GCENodeDriver(NodeDriver):
                                      "'ex_nic_gce_struct'. Use one or the "
                                      "other.")
 
+        ni = []
         if network:
             ni = [{'kind': 'compute#instanceNetworkInterface',
                    'network': network.extra['selfLink']}]
+            if ex_subnetwork:
+                ni[0]['subnetwork'] = ex_subnetwork.extra['selfLink']
             if external_ip:
                 access_configs = [{'name': 'External NAT',
                                    'type': 'ONE_TO_ONE_NAT'}]
@@ -5693,6 +5742,8 @@ class GCENodeDriver(NodeDriver):
         extra['status'] = image.get('status', None)
         extra['archiveSizeBytes'] = image.get('archiveSizeBytes', None)
         extra['diskSizeGb'] = image.get('diskSizeGb', None)
+        if 'guestOsFeatures' in image:
+            extra['guestOsFeatures'] = image.get('guestOsFeatures', [])
         if 'sourceDisk' in image:
             extra['sourceDisk'] = image.get('sourceDisk', None)
         if 'sourceDiskId' in image:

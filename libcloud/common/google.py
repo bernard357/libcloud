@@ -72,6 +72,7 @@ try:
 except ImportError:
     import json
 
+import logging
 import base64
 import errno
 import time
@@ -100,6 +101,8 @@ except ImportError:
     PKCS1_v1_5 = None
 
 UTC_TIMESTAMP_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
+
+LOG = logging.getLogger(__name__)
 
 
 def _utcnow():
@@ -677,8 +680,13 @@ class GoogleOAuth2Credential(object):
             with open(filename, 'r') as f:
                 data = f.read()
             token = json.loads(data)
-        except IOError:
-            pass
+        except (IOError, ValueError):
+            # Note: File related errors (IOError) and errors related to json
+            # parsing of the data (ValueError) are not fatal.
+            e = sys.exc_info()[1]
+            LOG.info('Failed to read cached auth token from file "%s": %s',
+                     filename, str(e))
+
         return token
 
     def _write_token_to_file(self):
@@ -686,11 +694,22 @@ class GoogleOAuth2Credential(object):
         Write token to credential file.
         Mocked in libcloud.test.common.google.GoogleTestCase.
         """
-        filename = os.path.realpath(os.path.expanduser(self.credential_file))
-        data = json.dumps(self.token)
-        with os.fdopen(os.open(filename, os.O_CREAT | os.O_WRONLY,
-                               int('600', 8)), 'w') as f:
-            f.write(data)
+        filename = os.path.expanduser(self.credential_file)
+        filename = os.path.realpath(filename)
+
+        try:
+            data = json.dumps(self.token)
+            write_flags = os.O_CREAT | os.O_WRONLY | os.O_TRUNC
+            with os.fdopen(os.open(filename, write_flags,
+                                   int('600', 8)), 'w') as f:
+                f.write(data)
+        except:
+            # Note: Failure to write (cache) token in a file is not fatal. It
+            # simply means degraded performance since we will need to acquire a
+            # new token each time script runs.
+            e = sys.exc_info()[1]
+            LOG.info('Failed to write auth token to file "%s": %s',
+                     filename, str(e))
 
 
 class GoogleBaseConnection(ConnectionUserAndKey, PollingConnection):

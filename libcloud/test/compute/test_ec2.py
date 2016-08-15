@@ -85,6 +85,19 @@ class EC2Tests(LibcloudTestCase, TestCaseMixin):
         self.driver = EC2NodeDriver(*EC2_PARAMS,
                                     **{'region': self.region})
 
+    def test_instantiate_driver_with_token(self):
+        token = 'temporary_credentials_token'
+        driver = EC2NodeDriver(*EC2_PARAMS, **{'region': self.region, 'token': token})
+        self.assertTrue(hasattr(driver, 'token'), 'Driver has no attribute token')
+        self.assertEquals(token, driver.token, "Driver token does not match with provided token")
+
+    def test_driver_with_token_signature_version(self):
+        token = 'temporary_credentials_token'
+        driver = EC2NodeDriver(*EC2_PARAMS, **{'region': self.region, 'token': token})
+        kwargs = driver._ex_connection_class_kwargs()
+        self.assertIn('signature_version', kwargs)
+        self.assertEquals('4', kwargs['signature_version'], 'Signature version is not 4 with temporary credentials')
+
     def test_create_node(self):
         image = NodeImage(id='ami-be3adfd7',
                           name=self.image_name,
@@ -389,10 +402,12 @@ class EC2Tests(LibcloudTestCase, TestCaseMixin):
         names = [
             ('ec2_us_east', 'us-east-1'),
             ('ec2_us_west', 'us-west-1'),
+            ('ec2_us_west', 'us-west-2'),
             ('ec2_eu_west', 'eu-west-1'),
             ('ec2_ap_southeast', 'ap-southeast-1'),
             ('ec2_ap_northeast', 'ap-northeast-1'),
-            ('ec2_ap_southeast_2', 'ap-southeast-2')
+            ('ec2_ap_southeast_2', 'ap-southeast-2'),
+            ('ec2_ap_south_1', 'ap-south-1')
         ]
 
         for api_name, region_name in names:
@@ -401,31 +416,34 @@ class EC2Tests(LibcloudTestCase, TestCaseMixin):
             sizes = self.driver.list_sizes()
 
             ids = [s.id for s in sizes]
-            self.assertTrue('t1.micro' in ids)
-            self.assertTrue('m1.small' in ids)
-            self.assertTrue('m1.large' in ids)
-            self.assertTrue('m1.xlarge' in ids)
-            self.assertTrue('c1.medium' in ids)
-            self.assertTrue('c1.xlarge' in ids)
-            self.assertTrue('m2.xlarge' in ids)
-            self.assertTrue('m2.2xlarge' in ids)
-            self.assertTrue('m2.4xlarge' in ids)
+
+            if region_name not in ['ap-south-1']:
+                self.assertTrue('t1.micro' in ids)
+                self.assertTrue('m1.small' in ids)
+                self.assertTrue('m1.large' in ids)
+                self.assertTrue('m1.xlarge' in ids)
+                self.assertTrue('c1.medium' in ids)
+                self.assertTrue('c1.xlarge' in ids)
+                self.assertTrue('m2.xlarge' in ids)
+                self.assertTrue('m2.2xlarge' in ids)
+                self.assertTrue('m2.4xlarge' in ids)
 
             if region_name == 'us-east-1':
-                self.assertEqual(len(sizes), 53)
+                self.assertEqual(len(sizes), 54)
                 self.assertTrue('cg1.4xlarge' in ids)
                 self.assertTrue('cc2.8xlarge' in ids)
                 self.assertTrue('cr1.8xlarge' in ids)
+                self.assertTrue('x1.32xlarge' in ids)
             elif region_name == 'us-west-1':
                 self.assertEqual(len(sizes), 45)
             if region_name == 'us-west-2':
-                self.assertEqual(len(sizes), 41)
+                self.assertEqual(len(sizes), 52)
             elif region_name == 'ap-southeast-1':
-                self.assertEqual(len(sizes), 43)
+                self.assertEqual(len(sizes), 44)
             elif region_name == 'ap-southeast-2':
-                self.assertEqual(len(sizes), 47)
+                self.assertEqual(len(sizes), 48)
             elif region_name == 'eu-west-1':
-                self.assertEqual(len(sizes), 51)
+                self.assertEqual(len(sizes), 52)
 
         self.driver.region_name = region_old
 
@@ -663,6 +681,11 @@ class EC2Tests(LibcloudTestCase, TestCaseMixin):
     def test_ex_delete_tags(self):
         node = Node('i-4382922a', None, None, None, None, self.driver)
         self.driver.ex_delete_tags(node, {'sample': 'tag'})
+
+    def test_ex_delete_tags2(self):
+        node = Node('i-4382922a', None, None, None, None, self.driver)
+        self.driver.ex_create_tags(node, {'sample': 'another tag'})
+        self.driver.ex_delete_tags(node, {'sample': None})
 
     def test_ex_describe_addresses_for_node(self):
         node1 = Node('i-4382922a', None, None, None, None, self.driver)

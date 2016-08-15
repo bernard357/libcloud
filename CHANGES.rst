@@ -1,8 +1,183 @@
 ﻿Changelog
 =========
 
-Changes with latest version of Apache Libcloud
-----------------------------------------------
+Changes in current version of Apache Libcloud
+---------------------------------------------
+
+General
+~~~~~~~
+
+- Fix caching of auth tokens in the Google Compute Engine drivers. Now we make
+  sure that the file is truncated before writing a new token. Not truncating
+  the file would cause issues if the new token is shorted then the existing one
+  which is cached in the file.
+  (GITHUB-844, LIBCLOUD-835)
+  [Paul Tiplady]
+
+Compute
+~~~~~~~
+
+- [gce] Allow undeprecation of an image.
+  (GITHUB-851)
+  [Max Illfelder]
+
+- [cloudstack] BUGFIX Values with wildcards failed signature validation
+  (GITHUB-846)
+  [Ronald van Zantvoot]
+
+- [cloudstack] Added StorageState-Migrating to the cloudstack driver.
+  (GITHUB-847)
+  [Marc-Aurèle Brothier]
+
+- [google compute] Update copy image logic to match create image.
+  (GITHUB-828)
+  [Max Illfelder]
+
+- Removed HD attribute from the Abiquo compute driver to support the 3.4 API
+  (GITHUB-840)
+  [David Freedman]
+
+- Add image and size details to `list_nodes` response in Dimension Data driver
+  (GITHUB-832)
+  [Anthony Shaw]
+
+- Add support for changing VM admin password in VMware driver
+  (GITHUB-833)
+  [Juan Font Alonso]
+
+- Add Barcelona (Spain) region to the Aurora Compute driver.
+  (GITHUB-835)
+  [Wido den Hollander]
+
+- Various improvements in the libvirt driver.
+  (GITHUB-838)
+  [Rene Kjellerup]
+
+Load balancer
+~~~~~~~~~~~~~
+
+- Add support for temporary IAM role credentials (token) to the AWS ELB driver.
+  (GITHUB-843)
+  [Anton Kozyrev]
+
+DNS
+~~~
+
+- Updated the 'extra' parameter in `update_record()` to be optional in aurora driver
+  (GITHUB-830)
+  [Wido den Hollander]
+
+- Support for iterating over records and zones in the Aurora DNS driver
+  (GITHUB-829)
+  [Wido den Hollander]
+
+- Add support for DS, PTR, SSFHFP and TLSA record type to the Aurora DNS
+  driver.
+  (GITHUB-834)
+  [Wido den Hollander]
+
+Container
+~~~~~~~~~
+
+- Add network mode and labels when creating containers within
+  docker driver
+  (GITHUB-831)
+  [Jamie Cressey]
+
+Storage
+~~~~~~~
+
+- Fix authentication issue in S3/China region, disabled multipart uploads as not supported
+  by region.
+  (GITHUB-839)
+  [Luke Morfitt]
+
+Changes with Apache Libcloud 1.1.0
+----------------------------------
+
+General
+~~~~~~~
+
+- Add support for automatic SNI (SSL extension) using the hostname
+  supplied to connect to.
+
+  Note: This functionality is only available in Python 2.7.9 and
+  Python >= 3.2.
+  (LIBCLOUD-827, GITHUB-808)
+  [David Freedman]
+
+Compute
+~~~~~~~
+
+- Add support image guest OS features in GCE driver
+  (GITHUB-825)
+  [Max Illfelder]
+
+- Added forceCustimization option for vcloud director driver
+  (GITHUB-824)
+  [Juan Font]
+
+- Add node lookup by UUID for libvirt driver
+  (GITHUB-823)
+  [Frank Wu]
+
+- Add block storage support to DigitalOcean node driver
+  (GITHUB-807)
+  [Adam Wolfe Gordon]
+
+- Add SASL auth support to libvirt driver.
+  (GITHUB-809)
+  [Katana-Steel]
+
+- Allow VIPs in Dimension Data driver to bind to any port.
+  (GITHUB-818)
+  [Mark Maglana]
+
+- Add support for deleting a security group to the Aliyun ECS driver.
+  (GITHUB-816)
+  [Heng Wu]
+
+- Add ``ex_force_customization`` argument to the ``ex_deploy_node`` in vCloud
+  driver.
+  (GITHUB-824)
+  [Juan Font]
+
+- Add support for listing  attributes for a particular security group
+  (``ex_list_security_group_attributes``) to the Aliyun ECS driver.
+  (GITHUB-826)
+  [Heng Wu]
+
+- Add new Mumbai, India region to the EC2 driver.
+  [Tomaz Muraus]
+
+- Add driver for the new AWS cn-north-1 region.
+  (GITHUB-827, LIBCLOUD-820)
+  [Jamie Cressey]
+
+- Fix authentication with temporary IAM role credentials (token) in the EC2
+  driver.
+  (GITHUB-820)
+  [Alejandro González]
+
+Container
+~~~~~~~~~
+
+- Fixed API compatibility for Docker Container driver with API 1.24, set driver
+  to use versioned URL for all communication. Backported changes to 1.21 API
+  (GITHUB-821)
+  [Anthony Shaw]
+
+Load Balancer
+~~~~~~~~~~~~~
+
+- Added additional parameters to the Rackspace driver in `list_balancers` for filtering and
+  searching.
+  (GITHUB-803)
+  [João Paulo Raittes]
+
+
+Changes with Apache Libcloud 1.0.0
+----------------------------------
 
 General
 ~~~~~~~
@@ -21,8 +196,17 @@ General
   (GITHUB-744)
   [Lionel Schaub]
 
+- Add support for authenticating against Keystone and OpenStack based clouds
+  using OpenID Connect tokens.
+  (GITHUB-789)
+  [Miguel Caballer]
+
 Compute
 ~~~~~~~
+
+- GCE nodes can be launched in a subnetwork
+  (GITHUB-783)
+  [Lars Larsson]
 
 - Add Subnetworks to GCE driver
   (GITHUB-780)
@@ -56,16 +240,57 @@ Compute
   v2 driver.
   [Tomaz Muraus]
 
+- Update libvirt driver so it returns false if a non-local libvirt URL is used
+  (right now only local instances are supported).
+  (LIBCLOUD-820, GITHUB-788)
+  [René Kjellerup]
+
+- Update libvirt driver to use `ip neight` command instead of `arp` to retrieve
+  node MAC address if `arp` command is not available or the current user
+  doesn't have permission to use it.
+  (LIBCLOUD-820, GITHUB-788)
+  [René Kjellerup]
+
+- Update ``create_volume`` method in the CloudStack driver and add
+  ``ex_volume_type`` argument to it. If this argument is provided, a volume
+  which names matches this argument value will be searched and selected among
+  the available disk offerings.
+  (GITHUB-785)
+  [Greg Bishop]
+
+Storage
+~~~~~~~
+
+- Add support for AWS signature v4 to the Outscale storage driver.
+  (GITHUB-736)
+  [Javier M. Mellid]
+
+
+- Add new S3 RGW storage driver.
+  (GITHUB-786, GITHUB-792)
+  [Javier M. Mellid]
+
+Loadbalancer
+~~~~~~~~~~~~
+
+- Update AWS ELB driver to use signature version 4 for authentication. This
+  way, the driver also work with the `eu-central-1` region.
+  (GITHUB-796)
+  [Tobias Paepke]
+
 DNS
 ~~~
 
-- Added BuddyNS driver
+- Add BuddyNS driver.
   (GITHUB-742)
   [Oltjano Terpollari]
 
+- Added DNSPod driver (https://www.dnspod.com).
+  (GITHUB-787)
+  [Oltjano Terpollari]
 
-Changes with Apache Libcloud in 1.0.0-rc2
------------------------------------------
+Changes with Apache Libcloud 1.0.0-rc2
+--------------------------------------
 
 General
 ~~~~~~~
@@ -181,7 +406,7 @@ Compute
 
 - New driver for Aliyun Elastic Compute Service.
   (LIBCLOUD-802, GITHUB-712)
-  [Sam Song]
+  [Sam Song, Heng Wu]
 
 Storage
 ~~~~~~~

@@ -44,17 +44,20 @@ class ELBConnection(SignedAWSConnection):
     version = VERSION
     host = HOST
     responseCls = ELBResponse
-    service_name = 'elb'
+    service_name = 'elasticloadbalancing'
 
 
 class ElasticLBDriver(Driver):
     name = 'Amazon Elastic Load Balancing'
     website = 'http://aws.amazon.com/elasticloadbalancing/'
     connectionCls = ELBConnection
+    signature_version = '4'
 
-    def __init__(self, access_id, secret, region):
-        super(ElasticLBDriver, self).__init__(access_id, secret)
+    def __init__(self, access_id, secret, region, token=None):
+        self.token = token
+        super(ElasticLBDriver, self).__init__(access_id, secret, token=token)
         self.region = region
+        self.region_name = region
         self.connection.host = HOST % (region)
 
     def list_protocols(self):
@@ -349,3 +352,13 @@ class ElasticLBDriver(Driver):
         for index, item in enumerate(items):
             params[label % (index + 1)] = item
         return params
+
+    def _ex_connection_class_kwargs(self):
+        kwargs = super(ElasticLBDriver, self)._ex_connection_class_kwargs()
+        if hasattr(self, 'token') and self.token is not None:
+            kwargs['token'] = self.token
+            kwargs['signature_version'] = '4'
+        else:
+            kwargs['signature_version'] = self.signature_version
+
+        return kwargs

@@ -640,6 +640,16 @@ INSTANCE_TYPES = {
         'extra': {
             'cpu': 2
         }
+    },
+    'x1.32xlarge': {
+        'id': 'x1.32xlarge',
+        'name': 'Memory Optimized ThirtyTwo Extra Large instance',
+        'ram': GiB(1952),
+        'disk': 2 * 1920,  # GB
+        'bandwidth': None,
+        'extra': {
+            'cpu': 128
+        }
     }
 }
 
@@ -704,7 +714,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # US West (Northern California) Region
@@ -818,7 +829,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # EU (Ireland) Region
@@ -878,7 +890,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # EU (Frankfurt) Region
@@ -923,7 +936,45 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
+        ]
+    },
+    # Asia Pacific (Mumbai, India) Region
+    'ap-south-1': {
+        'endpoint': 'ec2.ap-south-1.amazonaws.com',
+        'api_name': 'ec2_ap_south_1',
+        'country': 'India',
+        'signature_version': '4',
+        'instance_types': [
+            't2.nano',
+            't2.micro',
+            't2.small',
+            't2.medium',
+            't2.large',
+            'm4.large',
+            'm4.xlarge',
+            'm4.2xlarge',
+            'm4.4xlarge',
+            'm4.10xlarge',
+            'c4.large',
+            'c4.xlarge',
+            'c4.2xlarge',
+            'c4.4xlarge',
+            'c4.8xlarge',
+            'r3.large',
+            'r3.xlarge',
+            'r3.2xlarge',
+            'r3.4xlarge',
+            'r3.8xlarge',
+            'i2.xlarge',
+            'i2.2xlarge',
+            'i2.4xlarge',
+            'i2.8xlarge',
+            'd2.xlarge',
+            'd2.2xlarge',
+            'd2.4xlarge',
+            'd2.8xlarge'
         ]
     },
     # Asia Pacific (Singapore) Region
@@ -975,7 +1026,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # Asia Pacific (Tokyo) Region
@@ -1034,7 +1086,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # Asia Pacific (Seoul) Region
@@ -1071,7 +1124,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     # South America (Sao Paulo) Region
@@ -1155,7 +1209,8 @@ REGION_DETAILS = {
             't2.micro',
             't2.small',
             't2.medium',
-            't2.large'
+            't2.large',
+            'x1.32xlarge'
         ]
     },
     'us-gov-west-1': {
@@ -4255,7 +4310,8 @@ class BaseEC2NodeDriver(NodeDriver):
                   'ResourceId.0': resource.id}
         for i, key in enumerate(tags):
             params['Tag.%d.Key' % i] = key
-            params['Tag.%d.Value' % i] = tags[key]
+            if tags[key] is not None:
+                params['Tag.%d.Value' % i] = tags[key]
 
         res = self.connection.request(self.path,
                                       params=params.copy()).object
@@ -5380,7 +5436,13 @@ class BaseEC2NodeDriver(NodeDriver):
 
     def _ex_connection_class_kwargs(self):
         kwargs = super(BaseEC2NodeDriver, self)._ex_connection_class_kwargs()
-        kwargs['signature_version'] = self.signature_version
+        if hasattr(self, 'token') and self.token is not None:
+            kwargs['token'] = self.token
+            # Force signature_version 4 for tokens or auth breaks
+            kwargs['signature_version'] = '4'
+        else:
+            kwargs['signature_version'] = self.signature_version
+
         return kwargs
 
     def _to_nodes(self, object, xpath):
@@ -6317,7 +6379,7 @@ class EC2NodeDriver(BaseEC2NodeDriver):
     }
 
     def __init__(self, key, secret=None, secure=True, host=None, port=None,
-                 region='us-east-1', **kwargs):
+                 region='us-east-1', token=None, **kwargs):
         if hasattr(self, '_region'):
             region = self._region
 
@@ -6327,6 +6389,7 @@ class EC2NodeDriver(BaseEC2NodeDriver):
 
         details = REGION_DETAILS[region]
         self.region_name = region
+        self.token = token
         self.api_name = details['api_name']
         self.country = details['country']
         self.signature_version = details.get('signature_version',
