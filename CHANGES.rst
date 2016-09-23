@@ -4,6 +4,36 @@
 Changes in current version of Apache Libcloud
 ---------------------------------------------
 
+Compute
+~~~~~~~
+
+- When creating volumes on OpenStack with defaults for `location` or `volume_type`,
+  newer OpenStack versions would throw errors. The OpenStack driver will now only
+  post those arguments if non-`NoneType`.
+  (GITHUB-857)
+  [Allard Hoeve]
+
+Container
+~~~~~~~~~
+
+- Fixed bug in Docker util library for fetching images from the docker hub API. API
+  was returning 301 and redirects were not being followed.
+  (GITHUB-862)
+  [Anthony Shaw]
+
+Changes in Apache Libcloud 1.2.1
+--------------------------------
+
+Backup
+~~~~~~
+
+- Fix issue enabling backups on Dimension Data driver
+  (GITHUB-858)
+  [Mark Maglana][Jeff Dunham][Anthony Shaw]
+
+Changes in Apache Libcloud 1.2.0
+--------------------------------
+
 General
 ~~~~~~~
 
@@ -16,6 +46,14 @@ General
 
 Compute
 ~~~~~~~
+
+- [gce] Fix image undeprecation in GCE
+  (GITHUB-852)
+  [Max Illfelder]
+
+- [gce] Added Managed Instance Groups
+  (GITHUB-842)
+  [Tom Melendez]
 
 - [gce] Allow undeprecation of an image.
   (GITHUB-851)
