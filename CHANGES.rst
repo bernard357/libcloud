@@ -1,11 +1,174 @@
 ﻿Changelog
 =========
 
+
 Changes in current version of Apache Libcloud
 ---------------------------------------------
 
 Compute
 ~~~~~~~
+
+- Added new CloudScale.ch driver
+
+- [dimensiondata] Added support for 2.4 API, added support for image import, cloning. Add feature for changing NIC VLANs, add feature for changing
+  NIC order for a server.
+  (GITHUB-953)
+  [Samuel Chong]
+
+- [ec2] Add US-EAST2 (Ohio)
+  (GITHUB-946)
+  [Matthew Harris]
+
+- [google compute] Fix to allow multiple node creation with subnets
+  (GITHUB-949)
+  [John Baublitz]
+
+Changes in Apache Libcloud 1.4.0
+--------------------------------
+
+Compute
+~~~~~~~
+
+- Introduce new Azure ARM driver
+  [Peter Amstulz]
+
+- [ec2] Fix the bug that created the node at ecs driver and implement the method for creating public ip
+  (GITHUB-943)
+  [watermelo]
+
+- [profitbricks] changes to the ProfitBricks compute driver to drop support for the old SOAP api (now end of life) and provide support for v3 of the REST api.
+  (GITHUB-938)
+  [Matt Finucane]
+
+- [cloudsigma] Added Warsaw (waw) region
+  (GITHUB-942)
+  [Kamil Chmielewski]
+
+- [google compute] List images fix for projects > 500 images.
+  (GITHUB-939)
+  [Scott Crunkleton]
+
+- [ec2] Add st1 and sc1 volume types to valid types
+  (GITHUB-925)
+  [Sean Goller]
+
+- [digital ocean] add ex_change_kernel in DigitalOcean_v2 driver
+  (GITHUB-922)
+  [Rick van de Loo]
+
+- [digital ocean] add ex_hard_reboot in DigitalOcean_v2 driver
+  (GITHUB-920)
+  [Rick van de Loo]
+
+- [openstack] add ex_start_node for the openstack driver
+  (GITHUB-919)
+  [Rick van de Loo]
+
+- [vultr] Extra Attributes for Node Creation on Vultr
+  (GITHUB-917)
+  [Fahri Cihan Demirci]
+
+- [vultr] Implement SSH Key Create/Delete Methods for Vultr
+  (GITHUB-914)
+  [Fahri Cihan Demirci]
+
+- [dimension data] No longer throw error when powering off a node that is already stopped.
+  (GITHUB-912)
+  [Samuel Chong]
+
+- [dimension data] Refactor create_node for MCP2 to support CaaS API 2.3 feature.
+  Can now specify Network Adapter Name for primary and additional NIC. Parameters in create_node function is tailored for MCP2.
+  (GITHUB-902)
+  [Samuel Chong]
+
+- Volume snapshot operations, i.e. creating, listing and deleting volume snapshots, for the Digital Ocean driver.
+  (LIBCLOUD-861, GITHUB-909)
+  [Fahri Cihan Demirci]
+
+- Added snapshot management to OVH compute
+  (GITHUB-897)
+  [Anthony Monthe]
+
+- [GCE] Support for HTTP(S) proxies with BackendServices
+  (GITHUB-856
+  [Tom Melendez]
+
+Container
+~~~~~~~~~
+
+- [docker] As reported in the corresponding bug, the docker daemon will respond in an install_image call with all the messages
+  produced during the procedure parsed as json docs. In that case the response headers also contain the value 'transfer-encoding':'chunked'.
+  That kind of response can now be parsed properly by the DockerResponse parse_body method. Also, another small change is that previously
+  the id of the new image was marked in the json document as id, but now it's marked as sha256, so the regex used to discover the id
+  has been updated.
+  (GITHUB-918)
+  [Pavlos Tzianos]
+
+Load Balancing
+~~~~~~~~~~~~~~
+
+- Introduce AWS Application Load Balancer (ALB) driver
+  (LIBCLOUD-869, GITHUB-936)
+  [Anton Kozyrev]
+
+Storage
+~~~~~~~
+
+- [s3] Add AP-Southeast2 as region
+
+- [google] Prevent GCE auth to hide S3 auth
+  (GITHUB-921)
+  [Quentin Pradet]
+
+- [GCS] Fixed some google_storage.py URL cleaning
+  (GITHUB-901)
+  [Scott Crunkleton]
+
+Changes in Apache Libcloud 1.3.0
+--------------------------------
+
+General
+~~~~~~~
+
+- Introduced new base API for instantiating drivers
+  (GITHUB-822)
+  [Anthony Shaw]
+
+- Added certificate path for SLES12/OpenSUSE12
+  (GITHUB-884)
+  [Michael Calmer]
+
+- Deprecate DigitalOcean v1 API support in favour of v2 API
+  (GITHUB-889)(GITHUB-892)
+  [Andrew Starr-Bochicchio]
+
+- Deprecate RunAbove cloud drivers in favour of new OVH cloud driver
+  (GITHUB-891)
+  [Anthony Monthe]
+
+
+Compute
+~~~~~~~
+
+- Fix reporting function for detailed admin logs in Dimension Data Driver
+  (GITHUB-898)
+  [Anthony Shaw]
+
+- Added edit firewall functionality to Dimension Data driver
+  (GITHUB-893)
+  [Samuel Chong]
+
+- Bugfix - Fixed listing nodes issue in Python 3
+  (LIBCLOUD-858, GITHUB-894)
+  [Fahri Cihan Demirci]
+
+- Added FCU (Flexible Compute Unit) support to the Outscale driver.
+  (GITHUB-890)
+  [Javier M. Mellid]
+
+- [google compute] Add "WINDOWS" guestOsFeatures option.
+  (GITHUB-861)
+  [Max Illfelder]
 
 - When creating volumes on OpenStack with defaults for `location` or `volume_type`,
   newer OpenStack versions would throw errors. The OpenStack driver will now only
@@ -13,13 +176,50 @@ Compute
   (GITHUB-857)
   [Allard Hoeve]
 
+- When fetching the node details of a non-existing node, OpenStack would raise a
+  `BaseHTTPError` instead of returning `None`, as was intended. Fixed tests and code.
+  (GITHUB-864)
+
+- Added `ex_stop_node` to the OpenStack driver.
+  (GITHUB-865)
+
+- When creating volume snapshot, the arguments `name` and `description` are truely
+  optional when working with newer OpenStack versions. The OpenStack driver will now
+  only post thost arguments if they are non-`NoneType`.
+  (GITHUB-866)
+
+- StorageVolumeSnapshot now has an attribute `name` that has the name of the snapshot
+  if the provider supports it. This used to be `.extra['name']`, but that is inconsistent
+  with `Node` and `StorageVolume`. The `extra` dict still holds `name` for backwards
+  compatibility.
+  (GITHUB-867)
+  [Allard Hoeve]
+
 Container
 ~~~~~~~~~
+
+- Introduced new Rancher driver
+  (GITHUB-876)
+  [Mario Loria]
 
 - Fixed bug in Docker util library for fetching images from the docker hub API. API
   was returning 301 and redirects were not being followed.
   (GITHUB-862)
   [Anthony Shaw]
+
+Load Balancer
+~~~~~~~~~~~~~
+
+- Added fetch tags support in elb driver
+  (GITHUB-848)
+  [Anton Kozyrev]
+
+Storage
+~~~~~~~
+
+- Added storage permissions for Google Cloud Storage
+  (GITHUB-860)
+  [Scott Crunkleton]
 
 Changes in Apache Libcloud 1.2.1
 --------------------------------

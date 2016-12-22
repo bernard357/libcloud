@@ -113,10 +113,16 @@ def _utcnow():
 
 
 def _utc_timestamp(datetime_obj):
+    """
+    Return string of datetime_obj in the UTC Timestamp Format
+    """
     return datetime_obj.strftime(UTC_TIMESTAMP_FORMAT)
 
 
 def _from_utc_timestamp(timestamp):
+    """
+    Return datetime obj where date and time are pulled from timestamp string.
+    """
     return datetime.datetime.strptime(timestamp, UTC_TIMESTAMP_FORMAT)
 
 
@@ -338,6 +344,9 @@ class GoogleBaseAuthConnection(ConnectionUserAndKey):
         super(GoogleBaseAuthConnection, self).__init__(user_id, key, **kwargs)
 
     def add_default_headers(self, headers):
+        """
+        Add defaults for 'Content-Type' and 'Host' headers.
+        """
         headers['Content-Type'] = "application/x-www-form-urlencoded"
         headers['Host'] = self.host
         return headers
@@ -574,10 +583,10 @@ class GoogleAuthType(object):
     def guess_type(cls, user_id):
         if cls._is_sa(user_id):
             return cls.SA
-        elif cls._is_gce():
-            return cls.GCE
         elif cls._is_gcs_s3(user_id):
             return cls.GCS_S3
+        elif cls._is_gce():
+            return cls.GCE
         else:
             return cls.IA
 

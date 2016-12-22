@@ -1129,6 +1129,10 @@ class OpenStack_1_1_Tests(unittest.TestCase, TestCaseMixin):
         self.assertEqual(node.id, '12064')
         self.assertEqual(node.name, 'lc-test')
 
+    def test_ex_get_node_details_returns_none_if_node_does_not_exist(self):
+        node = self.driver.ex_get_node_details('does-not-exist')
+        self.assertTrue(node is None)
+
     def test_ex_get_size(self):
         size_id = '7'
         size = self.driver.ex_get_size(size_id)
@@ -1433,6 +1437,22 @@ class OpenStack_1_1_Tests(unittest.TestCase, TestCaseMixin):
         ret = self.driver.ex_unpause_node(node)
         self.assertTrue(ret is True)
 
+    def test_ex_stop_node(self):
+        node = Node(
+            id='12063', name=None, state=None,
+            public_ips=None, private_ips=None, driver=self.driver,
+        )
+        ret = self.driver.ex_stop_node(node)
+        self.assertTrue(ret is True)
+
+    def test_ex_start_node(self):
+        node = Node(
+            id='12063', name=None, state=None,
+            public_ips=None, private_ips=None, driver=self.driver,
+        )
+        ret = self.driver.ex_start_node(node)
+        self.assertTrue(ret is True)
+
     def test_ex_suspend_node(self):
         node = Node(
             id='12063', name=None, state=None,
@@ -1468,6 +1488,7 @@ class OpenStack_1_1_Tests(unittest.TestCase, TestCaseMixin):
         self.assertEqual(snapshots[0].created, datetime.datetime(2012, 2, 29, 3, 50, 7, tzinfo=UTC))
         self.assertEqual(snapshots[0].extra['created'], "2012-02-29T03:50:07Z")
         self.assertEqual(snapshots[0].extra['name'], 'snap-001')
+        self.assertEqual(snapshots[0].name, 'snap-001')
         self.assertEqual(snapshots[0].state, VolumeSnapshotState.AVAILABLE)
 
         # invalid date is parsed as None
@@ -1508,6 +1529,19 @@ class OpenStack_1_1_Tests(unittest.TestCase, TestCaseMixin):
                                              description='This is a test',
                                              force=True)
         self.assertEqual(ret.id, '3fbbcccf-d058-4502-8844-6feeffdf4cb5')
+
+    def test_ex_create_snapshot_does_not_post_optional_parameters_if_none(self):
+        volume = self.driver.list_volumes()[0]
+        with patch.object(self.driver, '_to_snapshot'):
+            with patch.object(self.driver.connection, 'request') as mock_request:
+                self.driver.create_volume_snapshot(volume,
+                                                   name=None,
+                                                   ex_description=None,
+                                                   ex_force=True)
+
+        name, args, kwargs = mock_request.mock_calls[0]
+        self.assertFalse("display_name" in kwargs["data"]["snapshot"])
+        self.assertFalse("display_description" in kwargs["data"]["snapshot"])
 
     def test_destroy_volume_snapshot(self):
         if self.driver_type.type == 'rackspace':
@@ -1561,6 +1595,9 @@ class OpenStack_1_1_MockHttp(MockHttpTestCase):
     def _v1_1_slug_servers_detail_ERROR_STATE_NO_IMAGE_ID(self, method, url, body, headers):
         body = self.fixtures.load('_servers_detail_ERROR_STATE.json')
         return (httplib.OK, body, self.json_content_headers, httplib.responses[httplib.OK])
+
+    def _v2_1337_servers_does_not_exist(self, *args, **kwargs):
+        return httplib.NOT_FOUND, None, {}, httplib.responses[httplib.NOT_FOUND]
 
     def _v1_1_slug_flavors_detail(self, method, url, body, headers):
         body = self.fixtures.load('_flavors_detail.json')
