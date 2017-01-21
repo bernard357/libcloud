@@ -36,7 +36,7 @@ __all__ = [
     '__version__',
     'enable_debug'
 ]
-__version__ = '1.4.0'
+__version__ = '2.0.0rc1'
 
 
 def enable_debug(fo):
@@ -46,13 +46,11 @@ def enable_debug(fo):
     :param fo: Where to append debugging information
     :type fo: File like object, only write operations are used.
     """
-    from libcloud.common.base import (Connection,
-                                      LoggingHTTPConnection,
-                                      LoggingHTTPSConnection)
-    LoggingHTTPSConnection.log = fo
-    LoggingHTTPConnection.log = fo
-    Connection.conn_classes = (LoggingHTTPConnection,
-                               LoggingHTTPSConnection)
+    from libcloud.common.base import Connection
+    from libcloud.utils.loggingconnection import LoggingConnection
+
+    LoggingConnection.log = fo
+    Connection.conn_class = LoggingConnection
 
 
 def _init_once():

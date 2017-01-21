@@ -29,7 +29,7 @@ class ProfitBricksTests(unittest.TestCase):
 
     def setUp(self):
         ProfitBricks = get_driver(Provider.PROFIT_BRICKS)
-        ProfitBricks.connectionCls.conn_classes = (None, ProfitBricksMockHttp)
+        ProfitBricks.connectionCls.conn_class = ProfitBricksMockHttp
         self.driver = ProfitBricks(*PROFIT_BRICKS_PARAMS)
 
     '''
@@ -4962,7 +4962,7 @@ class ProfitBricksMockHttp(MockHttp):
 
     GET     - fetch a list of snapshots
     '''
-    def _cloudapi_v3__snapshots(
+    def _cloudapi_v3_snapshots(
         self, method, url, body, headers
     ):
         if method == 'GET':
