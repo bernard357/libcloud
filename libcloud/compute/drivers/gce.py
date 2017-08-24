@@ -69,7 +69,7 @@ class GCEConnection(GoogleBaseConnection):
     """
     Connection class for the GCE driver.
 
-    GCEConnection extends :class:`google.GoogleBaseConnection` for 2 reasons:
+    GCEConnection extends :class:`google.GoogleBaseConnection` for 3 reasons:
       1. modify request_path for GCE URI.
       2. Implement gce_params functionality described below.
       3. Add request_aggregated_items method for making aggregated API calls.
@@ -1287,7 +1287,7 @@ class GCEInstanceGroupManager(UuidMixin):
         :type   id: ``str``
 
         :param  name: The name of this Instance Group.
-        :type   size: ``str``
+        :type   name: ``str``
 
         :param  zone: Zone in witch the Instance Group belongs
         :type   zone: :class: ``GCEZone``
@@ -1370,6 +1370,25 @@ class GCEInstanceGroupManager(UuidMixin):
         """
         return self.driver.ex_instancegroupmanager_recreate_instances(
             manager=self)
+
+    def delete_instances(self, node_list):
+        """
+        Removes one or more instances from the specified instance group,
+        and delete those instances.
+
+        Scopes needed - one of the following:
+        * https://www.googleapis.com/auth/cloud-platform
+        * https://www.googleapis.com/auth/compute
+
+        :param  node_list: List of nodes to delete.
+        :type   node_list: ``list`` of :class:`Node` or ``list`` of
+                           :class:`GCENode`
+
+        :return:  Return True if successful.
+        :rtype: ``bool``
+        """
+        return self.driver.ex_instancegroupmanager_delete_instances(
+            manager=self, node_list=node_list)
 
     def resize(self, size):
         """
@@ -1726,8 +1745,6 @@ class GCENodeDriver(NodeDriver):
     }
 
     BACKEND_SERVICE_PROTOCOLS = ['HTTP', 'HTTPS', 'HTTP2', 'TCP', 'SSL']
-    GUEST_OS_FEATURES = ['VIRTIO_SCSI_MULTIQUEUE', 'WINDOWS',
-                         'MULTI_IP_SUBNET']
 
     def __init__(self, user_id, key=None, datacenter=None, project=None,
                  auth_type=None, scopes=None, credential_file=None, **kwargs):
@@ -1855,7 +1872,7 @@ class GCENodeDriver(NodeDriver):
         :type     node: ``Node``
 
         :keyword  name: Name of the access config.
-        :type     node: ``str``
+        :type     name: ``str``
 
         :keyword  nic: Name of the network interface.
         :type     nic: ``str``
@@ -3109,7 +3126,8 @@ class GCENodeDriver(NodeDriver):
     def ex_create_forwarding_rule(self, name, target=None, region=None,
                                   protocol='tcp', port_range=None,
                                   address=None, description=None,
-                                  global_rule=False, targetpool=None):
+                                  global_rule=False, targetpool=None,
+                                  lb_scheme=None):
         """
         Create a forwarding rule.
 
@@ -3151,6 +3169,10 @@ class GCENodeDriver(NodeDriver):
                               Use target instead.
         :type     targetpool: ``str`` or :class:`GCETargetPool`
 
+        :keyword  lb_scheme: Load balancing scheme, can be 'EXTERNAL' or
+                             'INTERNAL'. Defaults to 'EXTERNAL'.
+        :type     lb_scheme: ``str`` or ``None``
+
         :return:  Forwarding Rule object
         :rtype:   :class:`GCEForwardingRule`
         """
@@ -3180,6 +3202,9 @@ class GCENodeDriver(NodeDriver):
             forwarding_rule_data['portRange'] = port_range
         if description:
             forwarding_rule_data['description'] = description
+
+        if lb_scheme:
+            forwarding_rule_data['loadBalancingScheme'] = lb_scheme
 
         if global_rule:
             request = '/global/forwardingRules'
@@ -3214,11 +3239,8 @@ class GCENodeDriver(NodeDriver):
                           is set with that family name.
         :type     family: ``str``
 
-        :keywork  guest_os_features: Features of the guest operating system,
-                                     valid for bootable images only. Possible
-                                     values include \'VIRTIO_SCSI_MULTIQUEUE\',
-                                     \'WINDOWS\', \'MULTI_IP_SUBNET\' if
-                                     specified.
+        :keyword  guest_os_features: Features of the guest operating system,
+                                     valid for bootable images only.
         :type     guest_os_features: ``list`` of ``str`` or ``None``
 
         :keyword  use_existing: If True and an image with the given name
@@ -3252,12 +3274,10 @@ class GCENodeDriver(NodeDriver):
             raise ValueError('Source must be instance of StorageVolume or URI')
         if guest_os_features:
             image_data['guestOsFeatures'] = []
+            if isinstance(guest_os_features, str):
+                guest_os_features = [guest_os_features]
             for feature in guest_os_features:
-                if feature in self.GUEST_OS_FEATURES:
-                    image_data['guestOsFeatures'].append({'type': feature})
-                else:
-                    raise ValueError('Features must be one of %s' %
-                                     ','.join(self.GUEST_OS_FEATURES))
+                image_data['guestOsFeatures'].append({'type': feature})
         request = '/global/images'
 
         try:
@@ -3284,7 +3304,7 @@ class GCENodeDriver(NodeDriver):
         :type   name: ``str``
 
         :param  url: The URL to the image. The URL can start with `gs://`
-        :param  url: ``str``
+        :type url: ``str``
 
         :param  description: The description of the image
         :type   description: ``str``
@@ -3316,12 +3336,10 @@ class GCENodeDriver(NodeDriver):
 
         if guest_os_features:
             image_data['guestOsFeatures'] = []
+            if isinstance(guest_os_features, str):
+                guest_os_features = [guest_os_features]
             for feature in guest_os_features:
-                if feature in self.GUEST_OS_FEATURES:
-                    image_data['guestOsFeatures'].append({'type': feature})
-                else:
-                    raise ValueError('Features must be one of %s' %
-                                     ','.join(self.GUEST_OS_FEATURES))
+                image_data['guestOsFeatures'].append({'type': feature})
 
         request = '/global/images'
         self.connection.async_request(request, method='POST', data=image_data)
@@ -3462,7 +3480,8 @@ class GCENodeDriver(NodeDriver):
         :type   priority: ``int``
 
         :param  network: The network the route belongs to. Can be either the
-                         full URL of the network or a libcloud object.
+                         full URL of the network, the name of the network  or
+                         a libcloud object.
         :type   network: ``str`` or ``GCENetwork``
 
         :param  tags: List of instance-tags for routing, empty for all nodes
@@ -3989,7 +4008,7 @@ class GCENodeDriver(NodeDriver):
 
         properties = self._create_instance_properties(
             name, node_size=size, source=source, image=image,
-            disk_type='pd-standard', disk_auto_delete=True,
+            disk_type=disk_type, disk_auto_delete=True,
             external_ip=external_ip, network=network, subnetwork=subnetwork,
             can_ip_forward=can_ip_forward, service_accounts=service_accounts,
             on_host_maintenance=on_host_maintenance,
@@ -4518,7 +4537,7 @@ class GCENodeDriver(NodeDriver):
             maint_opts = ['MIGRATE', 'TERMINATE']
             if isinstance(on_host_maintenance,
                           str) and on_host_maintenance in maint_opts:
-                if preemptible is True and on_host_maintenance is 'MIGRATE':
+                if preemptible is True and on_host_maintenance == 'MIGRATE':
                     raise ValueError(("host maintenance cannot be 'MIGRATE' "
                                       "if instance is preemptible."))
                 scheduling['onHostMaintenance'] = on_host_maintenance
@@ -5517,7 +5536,7 @@ class GCENodeDriver(NodeDriver):
         :param  instancegroup:  The Instance Group where from which you
                                 want to generate a list of included
                                 instances.
-        :type   instancegroup: :class:``GCEInstanceGroup``
+        :type   instancegroup: :class:`GCEInstanceGroup`
 
         :return:  List of :class:`GCENode` objects.
         :rtype: ``list`` of :class:`GCENode` objects.
@@ -5730,6 +5749,37 @@ class GCENodeDriver(NodeDriver):
                                 data=request_data).object
 
         return self.ex_instancegroupmanager_list_managed_instances(manager)
+
+    def ex_instancegroupmanager_delete_instances(self, manager,
+                                                 node_list):
+        """
+        Remove instances from GCEInstanceGroupManager and destroy
+        the instance
+
+        Scopes needed - one of the following:
+        * https://www.googleapis.com/auth/cloud-platform
+        * https://www.googleapis.com/auth/compute
+
+        :param  manager:  Required. The name of the managed instance group. The
+                       name must be 1-63 characters long, and comply with
+                       RFC1035.
+        :type   manager: ``str`` or :class: `GCEInstanceGroupManager`
+
+        :param  node_list:  list of Node objects to delete.
+        :type   node_list: ``list`` of :class:`Node`
+
+        :return:  True if successful
+        :rtype: ``bool``
+        """
+
+        request = "/zones/%s/instanceGroupManagers/%s/deleteInstances" % (
+            manager.zone.name, manager.name)
+        request_data = {'instances': [x.extra['selfLink']
+                                      for x in node_list]}
+        self.connection.request(request, method='POST',
+                                data=request_data).object
+
+        return True
 
     def ex_instancegroupmanager_resize(self, manager, size):
         """
@@ -6601,8 +6651,8 @@ class GCENodeDriver(NodeDriver):
         """
         Return a License object for specified project and name.
 
-        :param  name: The project to reference when looking up the license.
-        :type   name: ``str``
+        :param  project: The project to reference when looking up the license.
+        :type   project: ``str``
 
         :param  name: The name of the License
         :type   name: ``str``
@@ -6736,7 +6786,7 @@ class GCENodeDriver(NodeDriver):
 
         :param  ex_project_list: The name of the project to list for images.
                                  Examples include: 'debian-cloud'.
-        :type   ex_project_List: ``str``, ``list`` of ``str``, or ``None``
+        :type   ex_project_list: ``str`` or ``list`` of ``str`` or ``None``
 
         :param  ex_standard_projects: If true, check in standard projects if
                                       the image is not found.
@@ -6869,8 +6919,8 @@ class GCENodeDriver(NodeDriver):
         :param  name: The name, URL or object of the subnetwork
         :type   name: ``str`` or :class:`GCESubnetwork`
 
-        :param  name: The region object, name, or URL of the subnetwork
-        :type   name: ``str`` or :class:`GCERegion` or ``None``
+        :keyword region: The region object, name, or URL of the subnetwork
+        :type   region: ``str`` or :class:`GCERegion` or ``None``
 
         :return:  True if successful
         :rtype:   ``bool``
@@ -6901,7 +6951,7 @@ class GCENodeDriver(NodeDriver):
         if not region_name:
             region = self._set_region(region)
             if not region:
-                raise ("Could not determine region for subnetwork.")
+                raise ValueError("Could not determine region for subnetwork.")
             else:
                 region_name = region.name
 
@@ -6916,8 +6966,8 @@ class GCENodeDriver(NodeDriver):
         :param  name: The name or URL of the subnetwork
         :type   name: ``str``
 
-        :param  name: The region of the subnetwork
-        :type   name: ``str`` or :class:`GCERegion` or ``None``
+        :keyword region: The region of the subnetwork
+        :type   region: ``str`` or :class:`GCERegion` or ``None``
 
         :return:  A Subnetwork object
         :rtype:   :class:`GCESubnetwork`
@@ -6939,7 +6989,7 @@ class GCENodeDriver(NodeDriver):
         if not region_name:
             region = self._set_region(region)
             if not region:
-                raise ("Could not determine region for subnetwork.")
+                raise ValueError("Could not determine region for subnetwork.")
             else:
                 region_name = region.name
 
@@ -7055,6 +7105,12 @@ class GCENodeDriver(NodeDriver):
         if not self._ex_volume_dict or use_cache is False:
             # Make the API call and build volume dictionary
             self._ex_populate_volume_dict()
+
+        try:
+            # if zone is of class GCEZone or NodeLocation, get name instead
+            zone = zone.name
+        except AttributeError:
+            pass
 
         return self._ex_lookup_volume(name, zone)
 
@@ -7352,7 +7408,7 @@ class GCENodeDriver(NodeDriver):
         if volume_name not in self._ex_volume_dict:
             # Possibly added through another thread/process, so re-populate
             # _volume_dict and try again.  If still not found, raise exception.
-            self._ex_populate_dict()
+            self._ex_populate_volume_dict()
             if volume_name not in self._ex_volume_dict:
                 raise ResourceNotFoundError(
                     'Volume name: \'%s\' not found. Zone: %s' % (
@@ -7360,7 +7416,7 @@ class GCENodeDriver(NodeDriver):
         # Disk names are not unique across zones, so if zone is None or
         # 'all', we return the first one we find for that disk name.  For
         # consistency, we sort by keys and set the zone to the first key.
-        if zone is None or zone is 'all':
+        if zone is None or zone == 'all':
             zone = sorted(self._ex_volume_dict[volume_name])[0]
 
         volume = self._ex_volume_dict[volume_name].get(zone, None)
@@ -7868,8 +7924,6 @@ class GCENodeDriver(NodeDriver):
             error = e.value
             code = e.code
             response = {'status': 'DONE'}
-        except ResourceNotFoundError:
-            return
         if response['status'] == 'DONE':
             status['node_response'] = None
             if error:

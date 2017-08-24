@@ -38,7 +38,8 @@ Provider                              list images get image create image delete 
 `NephoScale`_                         yes         no        no           no           no        
 `Nimbus`_                             yes         yes       yes          yes          yes       
 `NTTAmerica`_                         yes         no        no           no           no        
-`OnApp`_                              no          no        no           no           no        
+`OnApp`_                              yes         no        no           no           no        
+`1and1`_                              yes         yes       no           no           no        
 `OpenNebula (v3.8)`_                  yes         no        no           no           no        
 `OpenStack`_                          yes         yes       no           no           no        
 `Outscale INC`_                       yes         yes       yes          yes          yes       
@@ -57,7 +58,6 @@ Provider                              list images get image create image delete 
 `vCloud`_                             yes         no        no           no           no        
 `Voxel VoxCLOUD`_                     yes         no        no           no           no        
 `vps.net`_                            yes         no        no           no           no        
-`VMware vSphere`_                     yes         no        no           no           no        
 `Vultr`_                              yes         no        no           no           no        
 ===================================== =========== ========= ============ ============ ==========
 
@@ -97,6 +97,7 @@ Provider                              list images get image create image delete 
 .. _`Nimbus`: http://www.nimbusproject.org/
 .. _`NTTAmerica`: http://www.nttamerica.com/
 .. _`OnApp`: http://onapp.com/
+.. _`1and1`: http://www.1and1.com
 .. _`OpenNebula (v3.8)`: http://opennebula.org/
 .. _`OpenStack`: http://openstack.org/
 .. _`Outscale INC`: http://www.outscale.com
@@ -115,5 +116,4 @@ Provider                              list images get image create image delete 
 .. _`vCloud`: http://www.vmware.com/products/vcloud/
 .. _`Voxel VoxCLOUD`: http://www.voxel.net/
 .. _`vps.net`: http://vps.net/
-.. _`VMware vSphere`: http://www.vmware.com/products/vsphere/
 .. _`Vultr`: https://www.vultr.com

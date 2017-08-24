@@ -26,7 +26,7 @@ from libcloud.utils.py3 import httplib
 from libcloud.utils.connection import get_response_object
 from libcloud.common.types import InvalidCredsError
 from libcloud.common.base import ConnectionUserAndKey, JsonResponse
-from libcloud.httplib_ssl import LibcloudConnection
+from libcloud.http import LibcloudConnection
 
 __all__ = [
     'OvhResponse',
@@ -131,8 +131,7 @@ class OvhConnection(ConnectionUserAndKey):
             full_url += '?'
             for key, value in params.items():
                 full_url += '%s=%s&' % (key, value)
-            else:
-                full_url = full_url[:-1]
+            full_url = full_url[:-1]
         sha1 = hashlib.sha1()
         base_signature = "+".join([
             self.key,

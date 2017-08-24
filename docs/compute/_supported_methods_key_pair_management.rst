@@ -38,7 +38,8 @@ Provider                              list key pairs get key pair create key pai
 `NephoScale`_                         no             no           no              no                            no                          no             
 `Nimbus`_                             yes            yes          yes             yes                           no                          yes            
 `NTTAmerica`_                         no             no           no              no                            no                          no             
-`OnApp`_                              no             no           no              no                            no                          no             
+`OnApp`_                              yes            yes          no              yes                           no                          yes            
+`1and1`_                              no             no           no              no                            no                          no             
 `OpenNebula (v3.8)`_                  no             no           no              no                            no                          no             
 `OpenStack`_                          no             no           no              no                            no                          no             
 `Outscale INC`_                       yes            yes          yes             yes                           no                          yes            
@@ -57,7 +58,6 @@ Provider                              list key pairs get key pair create key pai
 `vCloud`_                             no             no           no              no                            no                          no             
 `Voxel VoxCLOUD`_                     no             no           no              no                            no                          no             
 `vps.net`_                            no             no           no              no                            no                          no             
-`VMware vSphere`_                     no             no           no              no                            no                          no             
 `Vultr`_                              yes            no           yes             no                            no                          yes            
 ===================================== ============== ============ =============== ============================= =========================== ===============
 
@@ -97,6 +97,7 @@ Provider                              list key pairs get key pair create key pai
 .. _`Nimbus`: http://www.nimbusproject.org/
 .. _`NTTAmerica`: http://www.nttamerica.com/
 .. _`OnApp`: http://onapp.com/
+.. _`1and1`: http://www.1and1.com
 .. _`OpenNebula (v3.8)`: http://opennebula.org/
 .. _`OpenStack`: http://openstack.org/
 .. _`Outscale INC`: http://www.outscale.com
@@ -115,5 +116,4 @@ Provider                              list key pairs get key pair create key pai
 .. _`vCloud`: http://www.vmware.com/products/vcloud/
 .. _`Voxel VoxCLOUD`: http://www.voxel.net/
 .. _`vps.net`: http://vps.net/
-.. _`VMware vSphere`: http://www.vmware.com/products/vsphere/
 .. _`Vultr`: https://www.vultr.com
